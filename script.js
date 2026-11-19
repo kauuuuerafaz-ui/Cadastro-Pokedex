@@ -81,6 +81,8 @@ function renderizarPokemons() {
         card.style.color = "#000";
 
         card.innerHTML = `
+        
+            <button class="btn-excluir" onclick="removerPokemon('${poke.nome}')">X</button>
             <div class="imgPokemon">
                 <img src="${poke.imagem}" alt="${poke.nome}">
             </div>
@@ -88,7 +90,6 @@ function renderizarPokemons() {
             <p><strong>Tipo:</strong> ${poke.tipos.join(', ')}</p>
             <p><strong>Treinador:</strong> ${poke.treinador || "Sem Treinador"}</p>
             <p><strong>Poder:</strong> ${poke.poder}</p>
-            <button class="btn-excluir" onclick="removerPokemon('${poke.nome}')">Excluir</button>
         `;
 
         container.appendChild(card);

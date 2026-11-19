@@ -168,14 +168,23 @@ button {
 
 .card-pokemon {
     position: relative;
-    overflow: hidden;
-    width: 100%;
-    padding: 22px;
-    border-radius: 22px;
-    text-align: left;
-    box-shadow: 0 12px 30px rgba(16, 24, 40, 0.09);
-    transition: transform 200ms ease, box-shadow 200ms ease;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    width: 220px;
 }
+
+/* .card-pokemon:hover {
+    transform: rotateX(-10deg) rotateY(-10deg);
+    transition: all 0.3s;
+} */
+
+.card-pokemon img {
+    margin-top: 67px;
+    width: 150px;
+    height: auto;
+}
+
 
 .card-pokemon .imgPokemon {
     min-height: 150px;
@@ -210,12 +219,14 @@ button {
 }
 
 .card-pokemon .btn-excluir {
-    min-height: 40px;
-    margin-top: 12px;
+    position: absolute;
+    border-radius: 50%;
+    margin-left: 24px;
+    height: 20px;
+    width: 20px;
     background: #fff;
     color: #b42318;
     border: 1px solid #fecdca;
-    box-shadow: none;
 }
 
 .card-pokemon .btn-excluir:hover {
