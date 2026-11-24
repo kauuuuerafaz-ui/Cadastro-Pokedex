@@ -5,7 +5,10 @@
 // O Neon expõe o Postgres por HTTP: cada chamada é independente (sem conexão
 // persistente), por isso não existe pool a configurar nem conexão a encerrar.
 // Variáveis de ambiente usadas (somente os NOMES são documentados):
-//   DATABASE_URL        (obrigatória) string de conexão postgresql://...
+//   DATABASE_URL        (principal) string de conexão postgresql://...
+//   Alternativas aceitas, na ordem, quando DATABASE_URL não existe (a integração
+//   Neon/Vercel costuma criá-las): POSTGRES_URL, DATABASE_URL_UNPOOLED,
+//   POSTGRES_URL_NON_POOLING.
 //   NEON_HTTP_ENDPOINT  (opcional)    sobrescreve https://<host>/sql (uso em testes / proxy local)
 
 require('dotenv').config({ quiet: true })
@@ -18,6 +21,9 @@ const CHAVE_LOCK_BARALHO = 7342001
 // OIDs do Postgres que precisam ser convertidos de texto para número/booleano.
 const OIDS_NUMERICOS = new Set([20, 21, 23, 26]) // int8, int2, int4, oid
 const OID_BOOLEANO = 16
+
+// Nomes aceitos para a string de conexão (o primeiro preenchido vence).
+const VARIAVEIS_CONEXAO = ['DATABASE_URL', 'POSTGRES_URL', 'DATABASE_URL_UNPOOLED', 'POSTGRES_URL_NON_POOLING']
 
 const COLUNAS_POKEMON = 'id, nome, combatPower AS poder, img AS imagem, treinador, tipos'
 
@@ -40,10 +46,12 @@ class ErroBanco extends Error {
 // IMPORTANTE: nunca incluir o valor de DATABASE_URL em mensagens ou logs; o objeto
 // de erro do `new URL()` carrega a string original, por isso ele é descartado.
 function obterConfiguracao() {
-    const urlBruta = (process.env.DATABASE_URL || '').trim()
+    const urlBruta = VARIAVEIS_CONEXAO
+        .map((nome) => (process.env[nome] || '').trim())
+        .find(Boolean) || ''
 
     if (!urlBruta) {
-        throw new ErroBanco('CONFIG', 'Variável de ambiente DATABASE_URL não está definida.')
+        throw new ErroBanco('CONFIG', 'Variável de ambiente DATABASE_URL não está definida (também são aceitas POSTGRES_URL, DATABASE_URL_UNPOOLED e POSTGRES_URL_NON_POOLING).')
     }
 
     let url

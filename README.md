@@ -20,6 +20,7 @@ As rotas `/api/...` rodam como funções da Vercel (pasta `api/`), reaproveitand
 
 1. No painel da Vercel: Project > Settings > Environment Variables.
 2. Crie `DATABASE_URL` (string de conexão do Neon) para Production, Preview e Development.
+   Se a integração Neon/Vercel já criou `POSTGRES_URL` ou `DATABASE_URL_UNPOOLED`, o código também as aceita.
 3. Faça um novo Deploy (Redeploy) depois de criar a variável.
 4. Confira em https://SEU-SITE.vercel.app/api/saude (deve responder `{"banco":"ok",...}`).
 
