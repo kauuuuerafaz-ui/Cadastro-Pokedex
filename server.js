@@ -38,6 +38,27 @@ function responderJSON(res, status, dados, cabecalhos = {}) {
 }
 
 function lerCorpo(req) {
+    // Na Vercel o corpo pode já vir interpretado em req.body; no Node puro ele não existe.
+    let preparado;
+    try {
+        preparado = req.body;
+    } catch (erro) {
+        return Promise.reject(new ErroRequisicao(400, 'JSON inválido no corpo da requisição.'));
+    }
+    if (preparado !== undefined) {
+        if (Buffer.isBuffer(preparado)) {
+            preparado = preparado.toString('utf8');
+        }
+        if (typeof preparado === 'string') {
+            try {
+                preparado = JSON.parse(preparado || '{}');
+            } catch (erro) {
+                return Promise.reject(new ErroRequisicao(400, 'JSON inválido no corpo da requisição.'));
+            }
+        }
+        return Promise.resolve(preparado);
+    }
+
     return new Promise((resolve, reject) => {
         const pedacos = [];
         let tamanho = 0;
@@ -150,45 +171,47 @@ async function tratarApi(req, res, rota) {
     return metodoNaoPermitido(res, ['GET', 'PUT', 'PATCH', 'DELETE']);
 }
 
-function criarServidor() {
-    return http.createServer(async (req, res) => {
-        try {
-            const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-            const rota = url.pathname;
+async function tratarRequisicao(req, res) {
+    try {
+        const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const rota = url.pathname;
 
-            if (rota === '/api' || rota.startsWith('/api/')) {
-                return await tratarApi(req, res, rota);
-            }
-
-            const arquivo = arquivos[rota];
-            if (arquivo) {
-                if (req.method !== 'GET' && req.method !== 'HEAD') {
-                    return metodoNaoPermitido(res, ['GET', 'HEAD']);
-                }
-                const stream = fs.createReadStream(path.join(__dirname, arquivo.arquivo));
-                stream.on('error', (erro) => {
-                    console.error('[servidor] Falha ao ler arquivo estático:', erro.message);
-                    if (!res.headersSent) {
-                        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-                    }
-                    res.end('Erro ao carregar o arquivo');
-                });
-                res.writeHead(200, { 'Content-Type': arquivo.tipo, 'X-Content-Type-Options': 'nosniff' });
-                return req.method === 'HEAD' ? res.end() : stream.pipe(res);
-            }
-
-            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-            return res.end('Página não encontrada');
-        } catch (erro) {
-            if (res.headersSent) {
-                return res.end();
-            }
-            return responderErro(res, erro);
+        if (rota === '/api' || rota.startsWith('/api/')) {
+            return await tratarApi(req, res, rota);
         }
-    });
+
+        const arquivo = arquivos[rota];
+        if (arquivo) {
+            if (req.method !== 'GET' && req.method !== 'HEAD') {
+                return metodoNaoPermitido(res, ['GET', 'HEAD']);
+            }
+            const stream = fs.createReadStream(path.join(__dirname, arquivo.arquivo));
+            stream.on('error', (erro) => {
+                console.error('[servidor] Falha ao ler arquivo estático:', erro.message);
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+                }
+                res.end('Erro ao carregar o arquivo');
+            });
+            res.writeHead(200, { 'Content-Type': arquivo.tipo, 'X-Content-Type-Options': 'nosniff' });
+            return req.method === 'HEAD' ? res.end() : stream.pipe(res);
+        }
+
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('Página não encontrada');
+    } catch (erro) {
+        if (res.headersSent) {
+            return res.end();
+        }
+        return responderErro(res, erro);
+    }
 }
 
-module.exports = { criarServidor };
+function criarServidor() {
+    return http.createServer(tratarRequisicao);
+}
+
+module.exports = { criarServidor, tratarRequisicao };
 
 if (require.main === module) {
     const servidor = criarServidor();
